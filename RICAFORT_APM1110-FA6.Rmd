@@ -1,0 +1,335 @@
+---
+---
+title: "APM1110: Formative Assessment 6"
+subtitle: "R Programming and Probability Distributions"
+author: "Ricafort, Nathalie Faith A."
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+  pdf_document:
+    toc: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  fig.width = 8,
+  fig.height = 5
+)
+```
+
+# I. Geometric Distribution
+
+The geometric distribution models the waiting time until the first success
+in a sequence of independent Bernoulli trials. In this activity, the
+probability of success on each trial is \(p = 0.2\).
+
+R's `rgeom()` function generates the number of failures before the first
+success. Since the problem asks for the number of trials required to achieve
+the first success, 1 is added to every generated value.
+
+## 1. Set the probability of success
+
+```{r geometric-probability}
+p <- 0.2
+p
+```
+
+The probability of success in every trial is `r p`.
+
+## 2. Generate 1,000 geometric random variables
+
+A seed is set so that the same simulated sample and numerical results are
+obtained whenever the document is rendered.
+
+```{r geometric-simulation}
+set.seed(1110)
+
+n <- 1000
+
+# rgeom() returns failures before the first success.
+# Add 1 to obtain total trials required for the first success.
+x <- rgeom(n = n, prob = p) + 1
+
+# Display the first 20 simulated values.
+head(x, 20)
+```
+
+A total of `r length(x)` observations were generated.
+
+## 3. Calculate the basic statistics
+
+```{r geometric-statistics}
+mean_x <- mean(x)
+var_x  <- var(x)
+sd_x   <- sd(x)
+
+mean_x
+var_x
+sd_x
+```
+
+For comparison, the theoretical statistics for the number of trials until
+the first success are:
+
+\[
+E(X) = \frac{1}{p}
+\]
+
+\[
+\operatorname{Var}(X) = \frac{1-p}{p^2}
+\]
+
+\[
+\operatorname{SD}(X) = \sqrt{\frac{1-p}{p^2}}
+\]
+
+```{r geometric-theoretical}
+theoretical_mean <- 1 / p
+theoretical_variance <- (1 - p) / p^2
+theoretical_sd <- sqrt(theoretical_variance)
+
+theoretical_mean
+theoretical_variance
+theoretical_sd
+```
+## 4. Print the required formatted output
+
+```{r geometric-output}
+cat(
+  "Number of trials required to achieve first success:",
+  length(x),
+  "\n"
+)
+
+cat(
+  sprintf("Mean (in 2 decimal places): %.2f\n", mean_x)
+)
+
+cat(
+  sprintf("Variance (in 2 decimal places): %.2f\n", var_x)
+)
+
+cat(
+  sprintf("Standard deviation (in 2 decimal places): %.2f\n", sd_x)
+)
+```
+
+The simulated statistics should be reasonably close to the theoretical mean
+of `r sprintf("%.2f", theoretical_mean)`, variance of
+`r sprintf("%.2f", theoretical_variance)`, and standard deviation of
+`r sprintf("%.2f", theoretical_sd)`. Small differences are expected because
+the values were obtained from a random simulation.
+
+## 5. Plot the histogram
+
+```{r geometric-histogram, fig.cap="Histogram of simulated trials required to achieve the first success."}
+hist(
+  x,
+  breaks = seq(0.5, max(x) + 0.5, by = 1),
+  main = "Geometric Distribution: Trials Until First Success",
+  xlab = "Number of trials required",
+  ylab = "Frequency",
+  col = "steelblue",
+  border = "white",
+  xlim = c(0, max(x) + 1)
+)
+```
+
+The histogram is right-skewed. Lower trial counts occur more frequently
+because there is a chance of success on every trial. Large waiting times are
+possible, but they become progressively less frequent.
+
+# II. Hypergeometric Distribution
+
+Suppose 10% of the IC chips in each box are defective. A sample of 10 chips
+is selected without replacement.
+
+Let \(X\) denote the number of defective chips in the sample. The phrase
+"more than 10% defective" means:
+
+\[
+\frac{X}{10} > 0.10
+\]
+
+Therefore:
+
+\[
+X > 1
+\]
+
+Since \(X\) is an integer, the event is equivalent to \(X \ge 2\). Thus, the
+required probability is:
+
+\[
+P(X > 1) = 1 - P(X \le 1)
+\]
+
+In R, the hypergeometric cumulative distribution function is:
+
+```text
+phyper(q, m, n, k)
+```
+
+where:
+
+- `q` is the largest number of defectives included in the cumulative
+  probability;
+- `m` is the number of defective chips in the box;
+- `n` is the number of non-defective chips in the box; and
+- `k` is the sample size.
+
+## 1. Sample of 10 from a box of 40
+
+A box of 40 contains:
+
+- \(0.10(40) = 4\) defective chips;
+- \(40 - 4 = 36\) non-defective chips; and
+- a sample size of 10 chips.
+
+```{r hypergeometric-40}
+box_size_40 <- 40
+defective_40 <- 0.10 * box_size_40
+nondefective_40 <- box_size_40 - defective_40
+sample_size <- 10
+
+# P(X > 1) = 1 - P(X <= 1)
+prob_more_10_40 <- phyper(
+  q = 1,
+  m = defective_40,
+  n = nondefective_40,
+  k = sample_size,
+  lower.tail = FALSE
+)
+
+cat(
+  sprintf(
+    "Probability for a sample of 10 from a box of 40: %.6f\n",
+    prob_more_10_40
+  )
+)
+
+cat(
+  sprintf(
+    "Percentage probability: %.2f%%\n",
+    100 * prob_more_10_40
+  )
+)
+```
+
+As a manual check, the same result can be computed by adding the
+probabilities for 2, 3, and 4 defective chips:
+
+```{r hypergeometric-40-check}
+x_values_40 <- 2:min(defective_40, sample_size)
+
+probability_check_40 <- sum(
+  dhyper(
+    x_values_40,
+    m = defective_40,
+    n = nondefective_40,
+    k = sample_size
+  )
+)
+
+probability_check_40
+```
+
+**Interpretation:** The probability that more than 10% of the 10 sampled
+chips are defective is approximately
+`r sprintf("%.4f", prob_more_10_40)`, or
+`r sprintf("%.2f", 100 * prob_more_10_40)`%.
+
+## 2. Sample of 10 from a box of 5,000
+
+A box of 5,000 contains:
+
+- \(0.10(5000) = 500\) defective chips;
+- \(5000 - 500 = 4500\) non-defective chips; and
+- a sample size of 10 chips.
+
+```{r hypergeometric-5000}
+box_size_5000 <- 5000
+defective_5000 <- 0.10 * box_size_5000
+nondefective_5000 <- box_size_5000 - defective_5000
+
+# P(X > 1) = 1 - P(X <= 1)
+prob_more_10_5000 <- phyper(
+  q = 1,
+  m = defective_5000,
+  n = nondefective_5000,
+  k = sample_size,
+  lower.tail = FALSE
+)
+
+cat(
+  sprintf(
+    "Probability for a sample of 10 from a box of 5000: %.6f\n",
+    prob_more_10_5000
+  )
+)
+
+cat(
+  sprintf(
+    "Percentage probability: %.2f%%\n",
+    100 * prob_more_10_5000
+  )
+)
+```
+
+**Interpretation:** The probability that more than 10% of the 10 sampled
+chips are defective is approximately
+`r sprintf("%.4f", prob_more_10_5000)`, or
+`r sprintf("%.2f", 100 * prob_more_10_5000)`%.
+
+## Comparison of the two cases
+
+```{r hypergeometric-comparison}
+comparison <- data.frame(
+  Box_Size = c(40, 5000),
+  Defective_Chips = c(defective_40, defective_5000),
+  Nondefective_Chips = c(nondefective_40, nondefective_5000),
+  Sample_Size = c(sample_size, sample_size),
+  Probability = c(prob_more_10_40, prob_more_10_5000),
+  Percentage = c(
+    100 * prob_more_10_40,
+    100 * prob_more_10_5000
+  )
+)
+
+knitr::kable(
+  comparison,
+  digits = c(0, 0, 0, 0, 6, 2),
+  col.names = c(
+    "Box size",
+    "Defective",
+    "Non-defective",
+    "Sample size",
+    "Probability",
+    "Percentage"
+  ),
+  caption = "Probability that more than 10% of the sampled chips are defective"
+)
+```
+
+The probability for the larger box is close to the corresponding binomial
+probability because sampling 10 chips has very little effect on a population
+of 5,000. In the box of 40, sampling without replacement produces a stronger
+finite-population effect.
+
+# Conclusion
+
+The geometric simulation models the total number of trials needed to obtain
+the first success when the success probability is 0.2. The simulated
+statistics are close to the theoretical geometric-distribution values.
+
+For the hypergeometric problems, "more than 10% defective" in a sample of 10
+means at least 2 defective chips. The required probabilities were calculated
+using the upper tail of the hypergeometric distribution.
